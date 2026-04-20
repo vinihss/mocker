@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  mocker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mocker-api
+    ports:
+      - "8080:8080"
+    volumes:
+      - mocker-data:/data
+    environment:
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=8080
+      - DATABASE_PATH=/data/mocker.db
+      - DATABASE_MAX_OPEN_CONNS=25
+      - DATABASE_MAX_IDLE_CONNS=5
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  mocker-data:
+    driver: local

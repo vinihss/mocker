@@ -1,0 +1,933 @@
+openapi: 3.0.3
+info:
+  title: Mock API
+  description: |
+    API para gerenciamento de mocks HTTP dinâmicos com suporte a geração de dados estáticos, dinâmicos e via Faker.
+
+    ## Tipos de Resposta Suportados
+    - **static**: Resposta fixa configurada
+    - **dynamic**: Resposta processada comtransformação usando dados de input
+    - **faker**: Geração de dados aleatórios usando go-faker
+
+    ## Uso do Mock Server
+    Configure um mock e use os endpoints configurados para testar suas integrações.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+servers:
+  - url: http://localhost:8080
+    description: Servidor de desenvolvimento
+  - url: https://api.example.com
+    description: Servidor de produção
+tags:
+  - name: Mocks
+    description: Operações de gerenciamento de mocks
+  - name: Test
+    description: Teste de mocks
+  - name: MockServer
+    description: Endpoints dos mocks configurados
+paths:
+  # ========================================
+  # Gerenciamento de Mocks
+  # ========================================
+  /api/v1/mocks:
+    get:
+      summary: Listar todos os mocks
+      description: Retorna uma lista paginada de todos os mocks cadastrados.
+      operationId: listMocks
+      tags:
+        - Mocks
+      parameters:
+        - name: page
+          in: query
+          description: Número da página (começa em 1)
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: pageSize
+          in: query
+          description: Quantidade de itens por página
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Lista de mocks retornada com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListMocksResponse'
+              example:
+                data:
+                  - id: "550e8400-e29b-41d4-a716-446655440000"
+                    name: "Get Users"
+                    path: "/api/users"
+                    method: "GET"
+                    description: "Retorna lista de usuários"
+                    isActive: true
+                    responseConfig:
+                      type: "faker"
+                      statusCode: 200
+                      headers:
+                        Content-Type: "application/json"
+                      delayMs: 0
+                      faker:
+                        fields:
+                          - name: "id"
+                            type: "uuid"
+                          - name: "name"
+                            type: "name"
+                          - name: "email"
+                            type: "email"
+                    createdAt: "2024-01-15T10:30:00Z"
+                    updatedAt: "2024-01-15T10:30:00Z"
+                total: 1
+                page: 1
+                pageSize: 20
+                totalPages: 1
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    post:
+      summary: Criar um novo mock
+      description: |
+        Cria um novo mock com a configuração de resposta especificada.
+
+        ## Tipos de Resposta
+        - `static`: Retorna o body exatamente como configurado
+        - `dynamic`: Processa o body usando dados do request de entrada
+        - `faker`: Gera dados aleatórios usando go-faker
+
+        ## Campos Faker Suportados
+        `name`, `first_name`, `last_name`, `email`, `phone`, `uuid`, `date`, `datetime`,
+        `timestamp`, `address`, `city`, `country`, `state`, `zipcode`, `url`, `ip`, `ipv4`,
+        `ipv6`, `credit_card_number`, `credit_card_type`, `word`, `sentence`, `paragraph`
+      operationId: createMock
+      tags:
+        - Mocks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMockRequest'
+            example:
+              name: "Get Users"
+              path: "/api/users"
+              method: "GET"
+              description: "Retorna lista de usuários"
+              responseConfig:
+                type: "faker"
+                statusCode: 200
+                headers:
+                  Content-Type: "application/json"
+                delayMs: 0
+                faker:
+                  fields:
+                    - name: "id"
+                      type: "uuid"
+                    - name: "name"
+                      type: "name"
+                    - name: "email"
+                      type: "email"
+                    - name: "createdAt"
+                      type: "datetime"
+      responses:
+        '201':
+          description: Mock criado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mock'
+        '400':
+          description: Requisição inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/mocks/{id}:
+    get:
+      summary: Obter detalhes de um mock
+      description: Retorna os detalhes completos de um mock específico.
+      operationId: getMock
+      tags:
+        - Mocks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID único do mock
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Mock encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mock'
+        '404':
+          description: Mock não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      summary: Atualizar um mock
+      description: Atualiza as configurações de um mock existente.
+      operationId: updateMock
+      tags:
+        - Mocks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID único do mock
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateMockRequest'
+            example:
+              name: "Get Users Updated"
+              description: "Retorna lista de usuários atualizada"
+              responseConfig:
+                type: "faker"
+                statusCode: 200
+                faker:
+                  fields:
+                    - name: "id"
+                      type: "uuid"
+                    - name: "name"
+                      type: "name"
+                    - name: "email"
+                      type: "email"
+                    - name: "age"
+                      type: "number"
+                      format: "18-99"
+      responses:
+        '200':
+          description: Mock atualizado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Mock'
+        '400':
+          description: Requisição inválida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Mock não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    delete:
+      summary: Deletar um mock
+      description: Remove um mock permanentemente.
+      operationId: deleteMock
+      tags:
+        - Mocks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID único do mock
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Mock deletado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Mock não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/mocks/{id}/activate:
+    post:
+      summary: Ativar um mock
+      description: Ativa um mock para que ele seja usado pelo mock server.
+      operationId: activateMock
+      tags:
+        - Mocks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID único do mock
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Mock ativado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Mock não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/mocks/{id}/deactivate:
+    post:
+      summary: Desativar um mock
+      description: Desativa um mock para que ele não seja usado pelo mock server.
+      operationId: deactivateMock
+      tags:
+        - Mocks
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID único do mock
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Mock desativado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Mock não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ========================================
+  # Teste de Mocks
+  # ========================================
+  /api/v1/mocks/{id}/test:
+    post:
+      summary: Testar um mock
+      description: |
+        Executa um teste de um mock com dados de entrada específicos e retorna a resposta gerada.
+        O teste é armazenado no histórico para参考ência futura.
+      operationId: testMock
+      tags:
+        - Test
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID único do mock
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestMockRequest'
+            example:
+              input:
+                userId: "123"
+                includeDetails: true
+      responses:
+        '200':
+          description: Teste executado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TestMockResponse'
+              example:
+                output: '{"id":"550e8400-e29b-41d4-a716-446655440000","name":"John Doe","email":"john@example.com"}'
+                statusCode: 200
+                headers:
+                  Content-Type: "application/json"
+                tookMs: 5
+        '404':
+          description: Mock não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/mocks/{id}/tests:
+    get:
+      summary: Histórico de testes de um mock
+      description: Retorna o histórico paginado de testes executados para um mock específico.
+      operationId: getMockTests
+      tags:
+        - Test
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID único do mock
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+        - name: page
+          in: query
+          description: Número da página (começa em 1)
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: pageSize
+          in: query
+          description: Quantidade de itens por página
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: Histórico de testes retornado com sucesso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListTestsResponse'
+              example:
+                data:
+                  - id: "660e8400-e29b-41d4-a716-446655440001"
+                    mockId: "550e8400-e29b-41d4-a716-446655440000"
+                    input: '{"userId":"123"}'
+                    output: '{"id":"550e8400-e29b-41d4-a716-446655440000","name":"John Doe"}'
+                    statusCode: 200
+                    tookMs: 5
+                    createdAt: "2024-01-15T10:35:00Z"
+                total: 1
+                page: 1
+                pageSize: 20
+                totalPages: 1
+        '404':
+          description: Mock não encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Erro interno do servidor
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # ========================================
+  # Mock Server - Endpoints dos Mocks
+  # ========================================
+  /api/users:
+    get:
+      summary: Mock - GET /api/users
+      description: Endpoint configurado via mock para retornar lista de usuários
+      operationId: mockGetUsers
+      tags:
+        - MockServer
+      responses:
+        '200':
+          description: Resposta do mock
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        name:
+                          type: string
+                        email:
+                          type: string
+        '404':
+          description: Mock não encontrado ou inativo
+    post:
+      summary: Mock - POST /api/users
+      description: Endpoint configurado via mock para criação de usuário
+      operationId: mockCreateUser
+      tags:
+        - MockServer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+      responses:
+        '200':
+          description: Resposta do mock
+          content:
+            application/json:
+              schema:
+                type: object
+        '404':
+          description: Mock não encontrado ou inativo
+
+  /api/products:
+    get:
+      summary: Mock - GET /api/products
+      description: Endpoint configurado via mock para retornar lista de produtos
+      operationId: mockGetProducts
+      tags:
+        - MockServer
+      responses:
+        '200':
+          description: Resposta do mock
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  products:
+                    type: array
+                    items:
+                      type: object
+        '404':
+          description: Mock não encontrado ou inativo
+
+components:
+  schemas:
+    # ========================================
+    # Schemas de Request
+    # ========================================
+    CreateMockRequest:
+      type: object
+      required:
+        - name
+        - path
+        - method
+        - responseConfig
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Nome identificador do mock
+          example: "Get Users"
+        path:
+          type: string
+          description: "Caminho do endpoint (ex: /api/users)"
+          example: "/api/users"
+        method:
+          type: string
+          enum: [GET, POST, PUT, DELETE, PATCH]
+          description: Método HTTP
+          example: "GET"
+        description:
+          type: string
+          description: Descrição opcional do mock
+          example: "Retorna lista de usuários"
+        responseConfig:
+          $ref: '#/components/schemas/ResponseConfig'
+
+    UpdateMockRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Nome identificador do mock
+        path:
+          type: string
+          description: Caminho do endpoint
+        method:
+          type: string
+          enum: [GET, POST, PUT, DELETE, PATCH]
+          description: Método HTTP
+        description:
+          type: string
+          description: Descrição opcional do mock
+        isActive:
+          type: boolean
+          description: Se o mock está ativo
+        responseConfig:
+          $ref: '#/components/schemas/ResponseConfig'
+
+    TestMockRequest:
+      type: object
+      properties:
+        input:
+          type: object
+          description: Dados de entrada para geração dinâmica
+          additionalProperties: true
+          example:
+            userId: "123"
+            includeDetails: true
+
+    # ========================================
+    # Schemas de Response Config
+    # ========================================
+    ResponseConfig:
+      type: object
+      required:
+        - type
+        - statusCode
+        - body
+      properties:
+        type:
+          type: string
+          enum: [static, dynamic, faker]
+          description: Tipo de resposta
+          example: "faker"
+        statusCode:
+          type: integer
+          minimum: 100
+          maximum: 599
+          description: Código de status HTTP
+          example: 200
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: Headers HTTP personalizados
+          example:
+            Content-Type: "application/json"
+            X-Custom-Header: "value"
+        body:
+          type: object
+          description: |
+            Corpo da resposta (usado para tipos static e dynamic).
+            Para tipo faker, este campo pode ser omitido em favor de faker.fields
+          nullable: true
+        delayMs:
+          type: integer
+          minimum: 0
+          description: Atraso artificial em milissegundos
+          example: 0
+        faker:
+          $ref: '#/components/schemas/FakerConfig'
+
+    FakerConfig:
+      type: object
+      properties:
+        fields:
+          type: array
+          description: Lista de campos para geração via Faker
+          items:
+            $ref: '#/components/schemas/FakerField'
+          example:
+            - name: "id"
+              type: "uuid"
+            - name: "name"
+              type: "name"
+            - name: "email"
+              type: "email"
+
+    FakerField:
+      type: object
+      required:
+        - name
+        - type
+      properties:
+        name:
+          type: string
+          description: Nome do campo na resposta
+          example: "name"
+        type:
+          type: string
+          enum:
+            - name
+            - first_name
+            - last_name
+            - email
+            - phone
+            - phone_number
+            - uuid
+            - uuid_rfc4122
+            - date
+            - datetime
+            - timestamp
+            - word
+            - sentence
+            - paragraph
+            - address
+            - city
+            - country
+            - state
+            - zipcode
+            - latitude
+            - longitude
+            - url
+            - ip
+            - ipv4
+            - ipv6
+            - credit_card
+            - credit_card_number
+            - credit_card_type
+          description: Tipo de dado Faker
+          example: "name"
+        format:
+          type: string
+          description: "Formato opcional (ex: 18-99 para números)"
+          example: "18-99"
+
+    # ========================================
+    # Schemas de Entidade
+    # ========================================
+    Mock:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID único do mock
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          description: Nome identificador do mock
+          example: "Get Users"
+        path:
+          type: string
+          description: Caminho do endpoint
+          example: "/api/users"
+        method:
+          type: string
+          enum: [GET, POST, PUT, DELETE, PATCH]
+          description: Método HTTP
+          example: "GET"
+        description:
+          type: string
+          description: Descrição do mock
+          example: "Retorna lista de usuários"
+        isActive:
+          type: boolean
+          description: Se o mock está ativo
+          example: true
+        responseConfig:
+          $ref: '#/components/schemas/ResponseConfig'
+        createdAt:
+          type: string
+          format: date-time
+          description: Data de criação
+          example: "2024-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Data da última atualização
+          example: "2024-01-15T10:30:00Z"
+
+    MockTest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: ID único do teste
+          example: "660e8400-e29b-41d4-a716-446655440001"
+        mockId:
+          type: string
+          format: uuid
+          description: ID do mock associado
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        input:
+          type: string
+          description: JSON dos dados de entrada
+          example: '{"userId":"123"}'
+        output:
+          type: string
+          description: JSON da resposta gerada
+          example: '{"id":"550e8400-e29b-41d4-a716-446655440000","name":"John Doe"}'
+        statusCode:
+          type: integer
+          description: Código de status HTTP retornado
+          example: 200
+        tookMs:
+          type: integer
+          description: Tempo de execução em milissegundos
+          example: 5
+        createdAt:
+          type: string
+          format: date-time
+          description: Data de execução do teste
+          example: "2024-01-15T10:35:00Z"
+
+    TestMockResponse:
+      type: object
+      properties:
+        output:
+          type: string
+          description: JSON da resposta gerada
+          example: '{"id":"550e8400-e29b-41d4-a716-446655440000","name":"John Doe","email":"john@example.com"}'
+        statusCode:
+          type: integer
+          description: Código de status HTTP
+          example: 200
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: Headers da resposta
+          example:
+            Content-Type: "application/json"
+        tookMs:
+          type: integer
+          description: Tempo de geração em milissegundos
+          example: 5
+
+    # ========================================
+    # Schemas Genéricos
+    # ========================================
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Mensagem de erro
+          example: "Mock not found"
+        code:
+          type: string
+          description: Código de erro opcional
+          example: "404"
+        details:
+          type: string
+          description: Detalhes adicionais do erro
+          example: "The requested mock does not exist"
+
+    SuccessResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Mensagem de sucesso
+          example: "Mock deleted successfully"
+        data:
+          type: object
+          description: Dados adicionais opcionais
+
+    ListMocksResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Mock'
+        total:
+          type: integer
+          description: Total de mocks cadastrados
+          example: 1
+        page:
+          type: integer
+          description: Página atual
+          example: 1
+        pageSize:
+          type: integer
+          description: Itens por página
+          example: 20
+        totalPages:
+          type: integer
+          description: Total de páginas
+          example: 1
+
+    ListTestsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MockTest'
+        total:
+          type: integer
+          description: Total de testes
+          example: 1
+        page:
+          type: integer
+          description: Página atual
+          example: 1
+        pageSize:
+          type: integer
+          description: Itens por página
+          example: 20
+        totalPages:
+          type: integer
+          description: Total de páginas
+          example: 1
+
+    ListResponse:
+      type: object
+      description: Schema genérico para respostas paginadas
+      properties:
+        data:
+          type: object
+          description: Dados da resposta
+        total:
+          type: integer
+          description: Total de registros
+        page:
+          type: integer
+          description: Página atual
+        pageSize:
+          type: integer
+          description: Itens por página
+        totalPages:
+          type: integer
+          description: Total de páginas
