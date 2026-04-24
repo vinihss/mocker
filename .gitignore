@@ -1,7 +1,7 @@
 # Binaries
 mocker
 server
-/bin/
+bin/
 
 # Database
 *.db
