@@ -146,7 +146,7 @@ func setupRouter(h *handlers.Handler) *chi.Mux {
 		r.Get("/*", swaggerHandler.ServeStaticFileHandler())
 	})
 
-	// Health check
+	// Health check and frontend routes separated
 	r.Get("/health", h.HealthCheck)
 
 	// Mock server - serve mocks directly on their configured paths

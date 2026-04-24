@@ -1,43 +1,16 @@
-# Build stage
-FROM golang:1.25-alpine AS builder
+FROM nginx:alpine
 
-WORKDIR /app
+# Copy configs and files
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY frontend/dist /usr/share/nginx/html/
+COPY mocker /mocker
 
-# Install dependencies
-RUN apk add --no-cache git
+# Create startup script
+RUN echo '#!/bin/sh' > /start.sh && \
+    echo '/mocker &' >> /start.sh && \
+    echo 'nginx -g "daemon off;"' >> /start.sh && \
+    chmod +x /start.sh
 
-# Copy go mod files
-COPY go.mod go.sum ./
-RUN go mod download
+EXPOSE 80 8080
 
-# Copy source code
-COPY . .
-
-# Build binary
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /mocker ./cmd/server
-
-# Runtime stage
-FROM alpine:3.19
-
-WORKDIR /app
-
-# Install ca-certificates for HTTPS
-RUN apk --no-cache add ca-certificates
-
-# Copy binary from builder
-COPY --from=builder /mocker .
-
-# Copy docs for Swagger UI
-COPY --from=builder /app/docs ./docs
-
-# Create data directory
-RUN mkdir -p /data
-
-# Expose port
-EXPOSE 8080
-
-# Set environment
-ENV DATA_DIR=/data
-
-# Run the application
-CMD ["./mocker"]
+CMD ["/start.sh"]
