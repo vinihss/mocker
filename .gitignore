@@ -1,0 +1,32 @@
+# Binaries
+mocker
+server
+bin/
+
+# Database
+*.db
+*.sqlite
+
+# Logs
+*.log
+
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+*.env
+
+# IDE
+.vscode/
+.idea/
+*.sw?
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage.txt
