@@ -11,6 +11,15 @@ API para criar e gerenciar mocks dinâmicos para testes. O desenvolvedor define 
 - **Delay simulado** para testar timeouts
 - **Swagger/OpenAPI** documentação
 
+## Documentação da API
+
+| Recurso | URL |
+|--------|-----|
+| **Swagger UI** | http://localhost:8080/docs |
+| **OpenAPI Spec** | http://localhost:8080/docs/swagger.json |
+| **ReDoc** | http://localhost:8080/docs/redoc.html |
+| **Health Check** | http://localhost:8080/health |
+
 ## Quick Start
 
 ### Docker (Recomendado)
